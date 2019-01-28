@@ -16,3 +16,7 @@ GeoPackage/obj/GeoPackage.csproj.nuget.cache
 GeoPackage/obj/GeoPackage.csproj.nuget.g.props
 GeoPackage/obj/GeoPackage.csproj.nuget.g.targets
 GeoPackage/obj/project.assets.json
+GeoPackage/obj/Debug/netcoreapp2.1/GeoPackage.csproj.FileListAbsolute.txt
+GeoPackage/obj/Debug/netcoreapp2.1/GeoPackage.dll
+GeoPackage/obj/Debug/netcoreapp2.1/GeoPackage.pdb
+GeoPackage/obj/Debug/netcoreapp2.1/GeoPackage.Program.cs
