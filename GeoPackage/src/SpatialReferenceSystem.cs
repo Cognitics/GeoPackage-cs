@@ -7,9 +7,9 @@ namespace Cognitics.GeoPackage
     public class SpatialReferenceSystem
     {
         public string Name;
-        public int ID;
+        public long ID;
         public string Organization;
-        public int OrganizationCoordinateSystemID;
+        public long OrganizationCoordinateSystemID;
         public string Definition;
         public string Description;
 

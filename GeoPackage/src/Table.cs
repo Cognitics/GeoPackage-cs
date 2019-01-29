@@ -15,6 +15,6 @@ namespace Cognitics.GeoPackage
         public double MinY;
         public double MaxX;
         public double MaxY;
-        public int SpatialReferenceSystemID;
+        public long SpatialReferenceSystemID;
     }
 }

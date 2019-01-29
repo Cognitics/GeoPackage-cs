@@ -22,25 +22,25 @@ namespace Cognitics.GeoPackage
             Connection.Close();
         }
 
-        private string GetString(SQLiteDataReader reader, int ordinal)
+        private T GetFieldValue<T>(SQLiteDataReader reader, int ordinal, T defaultValue)
         {
-            return reader.IsDBNull(ordinal) ? "" : reader.GetString(ordinal);
+            return reader.IsDBNull(ordinal) ? defaultValue : reader.GetFieldValue<T>(ordinal);
         }
 
-        public Dictionary<int, SpatialReferenceSystem> SpatialReferenceSystems()
+        public Dictionary<long, SpatialReferenceSystem> SpatialReferenceSystems()
         {
-            var result = new Dictionary<int, SpatialReferenceSystem>();
+            var result = new Dictionary<long, SpatialReferenceSystem>();
             var cmd = new SQLiteCommand("SELECT * FROM gpkg_spatial_ref_sys", Connection);
             var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
                 var entry = new SpatialReferenceSystem();
-                entry.ID = reader.GetInt32(reader.GetOrdinal("srs_id"));
-                entry.Name = reader.GetString(reader.GetOrdinal("srs_name"));
-                entry.Organization = GetString(reader, reader.GetOrdinal("organization"));
-                entry.OrganizationCoordinateSystemID = reader.GetInt32(reader.GetOrdinal("organization_coordsys_id"));
-                entry.Definition = GetString(reader, reader.GetOrdinal("definition"));
-                entry.Description = GetString(reader, reader.GetOrdinal("description"));
+                entry.ID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0);
+                entry.Name = GetFieldValue(reader, reader.GetOrdinal("srs_name"), "");
+                entry.Organization = GetFieldValue(reader, reader.GetOrdinal("organization"), "");
+                entry.OrganizationCoordinateSystemID = GetFieldValue(reader, reader.GetOrdinal("organization_coordsys_id"), (long)0);
+                entry.Definition = GetFieldValue(reader, reader.GetOrdinal("definition"), "");
+                entry.Description = GetFieldValue(reader, reader.GetOrdinal("description"), "");
                 result[entry.ID] = entry;
             }
             return result;
@@ -54,16 +54,16 @@ namespace Cognitics.GeoPackage
             while (reader.Read())
             {
                 var entry = new Table();
-                entry.Name = GetString(reader, reader.GetOrdinal("table_name"));
-                entry.DataType = GetString(reader, reader.GetOrdinal("data_type"));
-                entry.Identifier = GetString(reader, reader.GetOrdinal("identifier"));
-                entry.Description = GetString(reader, reader.GetOrdinal("description"));
+                entry.Name = GetFieldValue(reader, reader.GetOrdinal("table_name"), "");
+                entry.DataType = GetFieldValue(reader, reader.GetOrdinal("data_type"), "");
+                entry.Identifier = GetFieldValue(reader, reader.GetOrdinal("identifier"), "");
+                entry.Description = GetFieldValue(reader, reader.GetOrdinal("description"), "");
                 entry.LastChange = reader.GetDateTime(reader.GetOrdinal("last_change"));
-                entry.MinX = reader.GetDouble(reader.GetOrdinal("min_x"));
-                entry.MinY = reader.GetDouble(reader.GetOrdinal("min_y"));
-                entry.MaxX = reader.GetDouble(reader.GetOrdinal("max_x"));
-                entry.MaxY = reader.GetDouble(reader.GetOrdinal("max_y"));
-                entry.SpatialReferenceSystemID = reader.GetInt32(reader.GetOrdinal("srs_id"));
+                entry.MinX = GetFieldValue(reader, reader.GetOrdinal("min_x"), double.MinValue);
+                entry.MinY = GetFieldValue(reader, reader.GetOrdinal("min_y"), double.MinValue);
+                entry.MaxX = GetFieldValue(reader, reader.GetOrdinal("max_x"), double.MaxValue);
+                entry.MaxY = GetFieldValue(reader, reader.GetOrdinal("max_y"), double.MaxValue);
+                entry.SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0);
                 result[entry.Name] = entry;
             }
             return result;
