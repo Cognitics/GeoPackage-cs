@@ -11,6 +11,7 @@ namespace Cognitics.GeoPackage.test
             string filename = "D:/GGDM_GeoPackage_Korea4.gpkg";
             var db = new Database(filename);
             var srs = db.SpatialReferenceSystems();
+            var contents = db.Contents();
 
 
             Assert.Fail();
