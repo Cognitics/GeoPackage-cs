@@ -69,6 +69,25 @@ namespace Cognitics.GeoPackage
             return result;
         }
 
+        public Dictionary<Tuple<string, string>, GeometryColumn> GeometryColumns()
+        {
+            var result = new Dictionary<Tuple<string, string>, GeometryColumn>();
+            var cmd = new SQLiteCommand("SELECT * FROM gpkg_geometry_columns", Connection);
+            var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var entry = new GeometryColumn();
+                entry.TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), "");
+                entry.ColumnName = GetFieldValue(reader, reader.GetOrdinal("column_name"), "");
+                entry.GeometryTypeName = GetFieldValue(reader, reader.GetOrdinal("geometry_type_name"), "");
+                entry.SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0);
+                entry.m = GetFieldValue(reader, reader.GetOrdinal("m"), (byte)0);
+                entry.z = GetFieldValue(reader, reader.GetOrdinal("z"), (byte)0);
+                result[new Tuple<string, string>(entry.TableName, entry.ColumnName)] = entry;
+            }
+            return result;
+        }
+
 
             //- gpkg_geometry_columns
             //- feature tables
