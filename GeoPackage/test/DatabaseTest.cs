@@ -21,6 +21,8 @@ namespace Cognitics.GeoPackage.test
             var geometryColumns_dict = db.GeometryColumns().ToDictionary(entry => new Tuple<string, string>(entry.TableName, entry.ColumnName));
             var geometryColumns_CASTLE_S = db.GeometryColumns("CASTLE_S").ToList();
             var geometryColumns_CASTLE_S_dict = db.GeometryColumns("CASTLE_S").ToDictionary(entry => entry.ColumnName);
+            var features = db.Features(contents_dict["CASTLE_S"]).ToList();
+            var features_dict = db.Features(contents_dict["CASTLE_S"]).ToDictionary(entry => entry.Attributes["OBJECTID"]);
 
 
             Assert.Fail();
