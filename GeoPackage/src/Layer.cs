@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Cognitics.GeoPackage
 {
-    public class Table
+    public class Layer
     {
         public string TableName;
         public string DataType;

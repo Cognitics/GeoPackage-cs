@@ -15,8 +15,8 @@ namespace Cognitics.GeoPackage.test
             var db = new Database(filename);
             var srs = db.SpatialReferenceSystems().ToList();
             var srs_dict = db.SpatialReferenceSystems().ToDictionary(entry => entry.ID);
-            var contents = db.Contents().ToList();
-            var contents_dict = db.Contents().ToDictionary(entry => entry.TableName);
+            var contents = db.Layers().ToList();
+            var contents_dict = db.Layers("features").ToDictionary(entry => entry.TableName);
             var geometryColumns = db.GeometryColumns().ToList();
             var geometryColumns_dict = db.GeometryColumns().ToDictionary(entry => new Tuple<string, string>(entry.TableName, entry.ColumnName));
             var geometryColumns_CASTLE_S = db.GeometryColumns("CASTLE_S").ToList();

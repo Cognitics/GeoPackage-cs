@@ -52,17 +52,22 @@ namespace Cognitics.GeoPackage
             }
         }
 
-        public IEnumerable<Table> Contents()
+        public IEnumerable<Layer> Layers(string dataType = null)
         {
             using (var cmd = Connection.CreateCommand())
             {
                 cmd.CommandText = "SELECT * FROM gpkg_contents";
                 cmd.CommandType = CommandType.Text;
+                if (dataType != null)
+                {
+                    cmd.CommandText += " WHERE data_type=@data_type";
+                    cmd.Parameters.Add(new SQLiteParameter("@data_type", dataType));
+                }
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        var result = new Table
+                        var result = new Layer
                         {
                             TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), ""),
                             DataType = GetFieldValue(reader, reader.GetOrdinal("data_type"), ""),
@@ -81,12 +86,17 @@ namespace Cognitics.GeoPackage
             }
         }
 
-        public IEnumerable<GeometryColumn> GeometryColumns()
+        public IEnumerable<GeometryColumn> GeometryColumns(string tableName = null)
         {
             using (var cmd = Connection.CreateCommand())
             {
                 cmd.CommandText = "SELECT * FROM gpkg_geometry_columns";
                 cmd.CommandType = CommandType.Text;
+                if (tableName != null)
+                {
+                    cmd.CommandText += " WHERE table_name=@table_name";
+                    cmd.Parameters.Add(new SQLiteParameter("@table_name", tableName));
+                }
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -106,38 +116,12 @@ namespace Cognitics.GeoPackage
             }
         }
 
-        public IEnumerable<GeometryColumn> GeometryColumns(string tableName)
-        {
-            using (var cmd = Connection.CreateCommand())
-            {
-                cmd.CommandText = "SELECT * FROM gpkg_geometry_columns WHERE table_name=@table_name";
-                cmd.CommandType = CommandType.Text;
-                cmd.Parameters.Add(new SQLiteParameter("@table_name", tableName));
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var result = new GeometryColumn
-                        {
-                            TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), ""),
-                            ColumnName = GetFieldValue(reader, reader.GetOrdinal("column_name"), ""),
-                            GeometryTypeName = GetFieldValue(reader, reader.GetOrdinal("geometry_type_name"), ""),
-                            SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
-                            m = GetFieldValue(reader, reader.GetOrdinal("m"), (byte)0),
-                            z = GetFieldValue(reader, reader.GetOrdinal("z"), (byte)0)
-                        };
-                        yield return result;
-                    }
-                }
-            }
-        }
-
-        public IEnumerable<Feature> Features(Table table)
+        public IEnumerable<Feature> Features(Layer layer)
         {
             // *** WARNING *** : table name cannot be parameterized ; this is vulnerable to sql injection
             using (var cmd = Connection.CreateCommand())
             {
-                cmd.CommandText = "SELECT * FROM " + table.TableName;
+                cmd.CommandText = "SELECT * FROM " + layer.TableName;
                 cmd.CommandType = CommandType.Text;
                 using (var reader = cmd.ExecuteReader())
                 {
