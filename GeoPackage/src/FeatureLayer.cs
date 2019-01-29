@@ -6,5 +6,9 @@ namespace Cognitics.GeoPackage
 {
     public class FeatureLayer : Layer
     {
+
+        internal FeatureLayer(Database database) : base(database)
+        {
+        }
     }
 }

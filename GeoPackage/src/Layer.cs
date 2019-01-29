@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using ProjNet.CoordinateSystems;
+using ProjNet.CoordinateSystems.Transformations;
 
 namespace Cognitics.GeoPackage
 {
@@ -16,5 +18,29 @@ namespace Cognitics.GeoPackage
         public double MaxX;
         public double MaxY;
         public long SpatialReferenceSystemID;
+
+        public readonly Database Database;
+
+        internal ICoordinateTransformation TransformFrom = null;
+        internal ICoordinateTransformation TransformTo = null;
+
+        internal Layer(Database database)
+        {
+            Database = database;
+            if (Database.ApplicationSpatialReferenceSystem != null)
+            {
+                var layerSpatialReferenceSystem = Database.SpatialReferenceSystem(SpatialReferenceSystemID);
+                if (layerSpatialReferenceSystem != null)
+                {
+                    var layerSRS = SpatialReferenceSystem.ProjNetCoordinateSystem(layerSpatialReferenceSystem.Definition);
+                    var appSRS = SpatialReferenceSystem.ProjNetCoordinateSystem(Database.ApplicationSpatialReferenceSystem.Definition);
+                    TransformFrom = SpatialReferenceSystem.ProjNetTransform(layerSRS, appSRS);
+                    TransformTo = SpatialReferenceSystem.ProjNetTransform(appSRS, layerSRS);
+                }
+            }
+        }
+
+
+
     }
 }

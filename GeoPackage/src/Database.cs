@@ -10,9 +10,11 @@ namespace Cognitics.GeoPackage
     public class Database
     {
         public readonly SQLiteConnection Connection;
+        public readonly SpatialReferenceSystem ApplicationSpatialReferenceSystem;
 
-        public Database(string filename)
+        public Database(string filename, SpatialReferenceSystem applicationSpatialReferenceSystem = null)
         {
+            ApplicationSpatialReferenceSystem = applicationSpatialReferenceSystem;
             Connection = new SQLiteConnection("Data Source=" + filename + ";Version=3;Mode=ReadOnly;");
             Connection.Open();
         }
@@ -52,6 +54,33 @@ namespace Cognitics.GeoPackage
             }
         }
 
+        public SpatialReferenceSystem SpatialReferenceSystem(long id)
+        {
+            using (var cmd = Connection.CreateCommand())
+            {
+                cmd.CommandText = "SELECT * FROM gpkg_spatial_ref_sys WHERE srs_id=@srs_id";
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.Add(new SQLiteParameter("@srs_id", id));
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if(reader.Read())
+                    {
+                        var result = new SpatialReferenceSystem
+                        {
+                            ID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
+                            Name = GetFieldValue(reader, reader.GetOrdinal("srs_name"), ""),
+                            Organization = GetFieldValue(reader, reader.GetOrdinal("organization"), ""),
+                            OrganizationCoordinateSystemID = GetFieldValue(reader, reader.GetOrdinal("organization_coordsys_id"), (long)0),
+                            Definition = GetFieldValue(reader, reader.GetOrdinal("definition"), ""),
+                            Description = GetFieldValue(reader, reader.GetOrdinal("description"), "")
+                        };
+                        return result;
+                    }
+                }
+            }
+            return null;
+        }
+
         public IEnumerable<Layer> Layers(string dataType = null)
         {
             using (var cmd = Connection.CreateCommand())
@@ -67,19 +96,24 @@ namespace Cognitics.GeoPackage
                 {
                     while (reader.Read())
                     {
-                        var result = new Layer
-                        {
-                            TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), ""),
-                            DataType = GetFieldValue(reader, reader.GetOrdinal("data_type"), ""),
-                            Identifier = GetFieldValue(reader, reader.GetOrdinal("identifier"), ""),
-                            Description = GetFieldValue(reader, reader.GetOrdinal("description"), ""),
-                            LastChange = reader.GetDateTime(reader.GetOrdinal("last_change")),
-                            MinX = GetFieldValue(reader, reader.GetOrdinal("min_x"), double.MinValue),
-                            MinY = GetFieldValue(reader, reader.GetOrdinal("min_y"), double.MinValue),
-                            MaxX = GetFieldValue(reader, reader.GetOrdinal("max_x"), double.MaxValue),
-                            MaxY = GetFieldValue(reader, reader.GetOrdinal("max_y"), double.MaxValue),
-                            SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0)
-                        };
+                        string layerType = GetFieldValue(reader, reader.GetOrdinal("data_type"), "");
+                        Layer result = null;
+                        if (layerType == "features")
+                            result = new FeatureLayer(this);
+                        if (layerType == "raster")
+                            result = new RasterLayer(this);
+                        if (result == null)
+                            result = new Layer(this);
+                        result.TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), "");
+                        result.DataType = GetFieldValue(reader, reader.GetOrdinal("data_type"), "");
+                        result.Identifier = GetFieldValue(reader, reader.GetOrdinal("identifier"), "");
+                        result.Description = GetFieldValue(reader, reader.GetOrdinal("description"), "");
+                        result.LastChange = reader.GetDateTime(reader.GetOrdinal("last_change"));
+                        result.MinX = GetFieldValue(reader, reader.GetOrdinal("min_x"), double.MinValue);
+                        result.MinY = GetFieldValue(reader, reader.GetOrdinal("min_y"), double.MinValue);
+                        result.MaxX = GetFieldValue(reader, reader.GetOrdinal("max_x"), double.MaxValue);
+                        result.MaxY = GetFieldValue(reader, reader.GetOrdinal("max_y"), double.MaxValue);
+                        result.SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0);
                         yield return result;
                     }
                 }
