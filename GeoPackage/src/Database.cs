@@ -27,69 +27,116 @@ namespace Cognitics.GeoPackage
             return reader.IsDBNull(ordinal) ? defaultValue : reader.GetFieldValue<T>(ordinal);
         }
 
-        public Dictionary<long, SpatialReferenceSystem> SpatialReferenceSystems()
+        public IEnumerable<SpatialReferenceSystem> SpatialReferenceSystems()
         {
-            var result = new Dictionary<long, SpatialReferenceSystem>();
-            var cmd = new SQLiteCommand("SELECT * FROM gpkg_spatial_ref_sys", Connection);
-            var reader = cmd.ExecuteReader();
-            while (reader.Read())
+            using (var cmd = Connection.CreateCommand())
             {
-                var entry = new SpatialReferenceSystem();
-                entry.ID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0);
-                entry.Name = GetFieldValue(reader, reader.GetOrdinal("srs_name"), "");
-                entry.Organization = GetFieldValue(reader, reader.GetOrdinal("organization"), "");
-                entry.OrganizationCoordinateSystemID = GetFieldValue(reader, reader.GetOrdinal("organization_coordsys_id"), (long)0);
-                entry.Definition = GetFieldValue(reader, reader.GetOrdinal("definition"), "");
-                entry.Description = GetFieldValue(reader, reader.GetOrdinal("description"), "");
-                result[entry.ID] = entry;
+                cmd.CommandText = "SELECT * FROM gpkg_spatial_ref_sys";
+                cmd.CommandType = CommandType.Text;
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var result = new SpatialReferenceSystem
+                        {
+                            ID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
+                            Name = GetFieldValue(reader, reader.GetOrdinal("srs_name"), ""),
+                            Organization = GetFieldValue(reader, reader.GetOrdinal("organization"), ""),
+                            OrganizationCoordinateSystemID = GetFieldValue(reader, reader.GetOrdinal("organization_coordsys_id"), (long)0),
+                            Definition = GetFieldValue(reader, reader.GetOrdinal("definition"), ""),
+                            Description = GetFieldValue(reader, reader.GetOrdinal("description"), "")
+                        };
+                        yield return result;
+                    }
+                }
             }
-            return result;
         }
 
-        public Dictionary<string, Table> Contents()
+        public IEnumerable<Table> Contents()
         {
-            var result = new Dictionary<string, Table>();
-            var cmd = new SQLiteCommand("SELECT * FROM gpkg_contents", Connection);
-            var reader = cmd.ExecuteReader();
-            while (reader.Read())
+            using (var cmd = Connection.CreateCommand())
             {
-                var entry = new Table();
-                entry.Name = GetFieldValue(reader, reader.GetOrdinal("table_name"), "");
-                entry.DataType = GetFieldValue(reader, reader.GetOrdinal("data_type"), "");
-                entry.Identifier = GetFieldValue(reader, reader.GetOrdinal("identifier"), "");
-                entry.Description = GetFieldValue(reader, reader.GetOrdinal("description"), "");
-                entry.LastChange = reader.GetDateTime(reader.GetOrdinal("last_change"));
-                entry.MinX = GetFieldValue(reader, reader.GetOrdinal("min_x"), double.MinValue);
-                entry.MinY = GetFieldValue(reader, reader.GetOrdinal("min_y"), double.MinValue);
-                entry.MaxX = GetFieldValue(reader, reader.GetOrdinal("max_x"), double.MaxValue);
-                entry.MaxY = GetFieldValue(reader, reader.GetOrdinal("max_y"), double.MaxValue);
-                entry.SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0);
-                result[entry.Name] = entry;
+                cmd.CommandText = "SELECT * FROM gpkg_contents";
+                cmd.CommandType = CommandType.Text;
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var result = new Table
+                        {
+                            TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), ""),
+                            DataType = GetFieldValue(reader, reader.GetOrdinal("data_type"), ""),
+                            Identifier = GetFieldValue(reader, reader.GetOrdinal("identifier"), ""),
+                            Description = GetFieldValue(reader, reader.GetOrdinal("description"), ""),
+                            LastChange = reader.GetDateTime(reader.GetOrdinal("last_change")),
+                            MinX = GetFieldValue(reader, reader.GetOrdinal("min_x"), double.MinValue),
+                            MinY = GetFieldValue(reader, reader.GetOrdinal("min_y"), double.MinValue),
+                            MaxX = GetFieldValue(reader, reader.GetOrdinal("max_x"), double.MaxValue),
+                            MaxY = GetFieldValue(reader, reader.GetOrdinal("max_y"), double.MaxValue),
+                            SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0)
+                        };
+                        yield return result;
+                    }
+                }
             }
-            return result;
         }
 
-        public Dictionary<Tuple<string, string>, GeometryColumn> GeometryColumns()
+        public IEnumerable<GeometryColumn> GeometryColumns()
         {
-            var result = new Dictionary<Tuple<string, string>, GeometryColumn>();
-            var cmd = new SQLiteCommand("SELECT * FROM gpkg_geometry_columns", Connection);
-            var reader = cmd.ExecuteReader();
-            while (reader.Read())
+            using (var cmd = Connection.CreateCommand())
             {
-                var entry = new GeometryColumn();
-                entry.TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), "");
-                entry.ColumnName = GetFieldValue(reader, reader.GetOrdinal("column_name"), "");
-                entry.GeometryTypeName = GetFieldValue(reader, reader.GetOrdinal("geometry_type_name"), "");
-                entry.SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0);
-                entry.m = GetFieldValue(reader, reader.GetOrdinal("m"), (byte)0);
-                entry.z = GetFieldValue(reader, reader.GetOrdinal("z"), (byte)0);
-                result[new Tuple<string, string>(entry.TableName, entry.ColumnName)] = entry;
+                cmd.CommandText = "SELECT * FROM gpkg_geometry_columns";
+                cmd.CommandType = CommandType.Text;
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var result = new GeometryColumn
+                        {
+                            TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), ""),
+                            ColumnName = GetFieldValue(reader, reader.GetOrdinal("column_name"), ""),
+                            GeometryTypeName = GetFieldValue(reader, reader.GetOrdinal("geometry_type_name"), ""),
+                            SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
+                            m = GetFieldValue(reader, reader.GetOrdinal("m"), (byte)0),
+                            z = GetFieldValue(reader, reader.GetOrdinal("z"), (byte)0)
+                        };
+                        yield return result;
+                    }
+                }
             }
-            return result;
+        }
+
+        public IEnumerable<GeometryColumn> GeometryColumns(string tableName)
+        {
+            using (var cmd = Connection.CreateCommand())
+            {
+                cmd.CommandText = "SELECT * FROM gpkg_geometry_columns WHERE table_name=@table_name";
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.Add(new SQLiteParameter("@table_name", tableName));
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var result = new GeometryColumn
+                        {
+                            TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), ""),
+                            ColumnName = GetFieldValue(reader, reader.GetOrdinal("column_name"), ""),
+                            GeometryTypeName = GetFieldValue(reader, reader.GetOrdinal("geometry_type_name"), ""),
+                            SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
+                            m = GetFieldValue(reader, reader.GetOrdinal("m"), (byte)0),
+                            z = GetFieldValue(reader, reader.GetOrdinal("z"), (byte)0)
+                        };
+                        yield return result;
+                    }
+                }
+            }
         }
 
 
-            //- gpkg_geometry_columns
+
+
+
+
             //- feature tables
 
                 /*

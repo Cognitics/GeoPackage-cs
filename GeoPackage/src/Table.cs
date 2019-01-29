@@ -6,7 +6,7 @@ namespace Cognitics.GeoPackage
 {
     public class Table
     {
-        public string Name;
+        public string TableName;
         public string DataType;
         public string Identifier;
         public string Description;
