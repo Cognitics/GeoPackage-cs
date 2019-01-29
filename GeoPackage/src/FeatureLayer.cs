@@ -10,5 +10,9 @@ namespace Cognitics.GeoPackage
         internal FeatureLayer(Database database) : base(database)
         {
         }
+
+        public IEnumerable<GeometryColumn> GeometryColumns() => Database.GeometryColumns(TableName);
+
+
     }
 }

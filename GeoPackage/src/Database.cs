@@ -29,6 +29,14 @@ namespace Cognitics.GeoPackage
             return reader.IsDBNull(ordinal) ? defaultValue : reader.GetFieldValue<T>(ordinal);
         }
 
+        private byte[] GetFieldValueBlob(SQLiteDataReader reader, int ordinal)
+        {
+            System.IO.Stream stream = reader.GetStream(ordinal);
+            byte[] result = new byte[stream.Length];
+            stream.Read(result, 0, (int)stream.Length);
+            return result;
+        }
+
         public IEnumerable<SpatialReferenceSystem> SpatialReferenceSystems()
         {
             using (var cmd = Connection.CreateCommand())

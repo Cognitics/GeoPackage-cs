@@ -21,6 +21,8 @@ namespace Cognitics.GeoPackage
 
         public readonly Database Database;
 
+        public SpatialReferenceSystem SpatialReferenceSystem => Database.SpatialReferenceSystem(SpatialReferenceSystemID);
+
         internal ICoordinateTransformation TransformFrom = null;
         internal ICoordinateTransformation TransformTo = null;
 
@@ -29,7 +31,7 @@ namespace Cognitics.GeoPackage
             Database = database;
             if (Database.ApplicationSpatialReferenceSystem != null)
             {
-                var layerSpatialReferenceSystem = Database.SpatialReferenceSystem(SpatialReferenceSystemID);
+                var layerSpatialReferenceSystem = SpatialReferenceSystem;
                 if (layerSpatialReferenceSystem != null)
                 {
                     var layerSRS = SpatialReferenceSystem.ProjNetCoordinateSystem(layerSpatialReferenceSystem.Definition);
