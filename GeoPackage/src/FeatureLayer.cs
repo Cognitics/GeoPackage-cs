@@ -34,9 +34,7 @@ namespace Cognitics.GeoPackage
                                     continue;
                                 if (TransformFrom == null)
                                     continue;
-
-                                // TODO: if layer has transform, use it
-
+                                feature.Geometry.Transform(TransformFrom);
                                 continue;
                             }
                             feature.Attributes[reader.GetName(i)] = reader.GetValue(i);

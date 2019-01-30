@@ -35,10 +35,19 @@ namespace Cognitics.GeoPackage
                 var layerSpatialReferenceSystem = SpatialReferenceSystem;
                 if (layerSpatialReferenceSystem != null)
                 {
-                    var layerSRS = SpatialReferenceSystem.ProjNetCoordinateSystem(layerSpatialReferenceSystem.Definition);
-                    var appSRS = SpatialReferenceSystem.ProjNetCoordinateSystem(Database.ApplicationSpatialReferenceSystem.Definition);
-                    TransformFrom = SpatialReferenceSystem.ProjNetTransform(layerSRS, appSRS);
-                    TransformTo = SpatialReferenceSystem.ProjNetTransform(appSRS, layerSRS);
+                    if (layerSpatialReferenceSystem.ID == 0)
+                        layerSpatialReferenceSystem = Database.SpatialReferenceSystem(4326);
+                    //if (layerSpatialReferenceSystem.Definition != Database.ApplicationSpatialReferenceSystem.Definition)
+                    {
+                        try
+                        {
+                            var layerSRS = SpatialReferenceSystem.ProjNetCoordinateSystem(layerSpatialReferenceSystem.Definition);
+                            var appSRS = SpatialReferenceSystem.ProjNetCoordinateSystem(Database.ApplicationSpatialReferenceSystem.Definition);
+                            TransformFrom = SpatialReferenceSystem.ProjNetTransform(layerSRS, appSRS);
+                            TransformTo = SpatialReferenceSystem.ProjNetTransform(appSRS, layerSRS);
+                        }
+                        catch (ArgumentException) { }
+                    }
                 }
             }
         }

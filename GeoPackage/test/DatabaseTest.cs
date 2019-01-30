@@ -14,7 +14,8 @@ namespace Cognitics.GeoPackage.test
         public void TestDatabase()
         {
             string filename = "D:/GGDM_GeoPackage_Korea4.gpkg";
-            var db = new Database(filename, new SpatialReferenceSystem("WGS84"));
+            var db = new Database(filename);
+            db.ApplicationSpatialReferenceSystem = db.SpatialReferenceSystem(4326);
             foreach(FeatureLayer layer in db.FeatureLayers())
             {
                 System.Diagnostics.Debug.WriteLine("LAYER " + layer.TableName);

@@ -10,11 +10,10 @@ namespace Cognitics.GeoPackage
     public class Database
     {
         public readonly SQLiteConnection Connection;
-        public readonly SpatialReferenceSystem ApplicationSpatialReferenceSystem;
+        public SpatialReferenceSystem ApplicationSpatialReferenceSystem;
 
-        public Database(string filename, SpatialReferenceSystem applicationSpatialReferenceSystem = null)
+        public Database(string filename)
         {
-            ApplicationSpatialReferenceSystem = applicationSpatialReferenceSystem;
             Connection = new SQLiteConnection("Data Source=" + filename + ";Version=3;Mode=ReadOnly;");
             Connection.Open();
         }
