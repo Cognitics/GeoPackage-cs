@@ -1,7 +1,6 @@
 ﻿using System;
+using System.Data;
 using System.Collections.Generic;
-using System.Text;
-using ProjNet.CoordinateSystems;
 using ProjNet.CoordinateSystems.Transformations;
 
 namespace Cognitics.GeoPackage
@@ -22,6 +21,7 @@ namespace Cognitics.GeoPackage
         public readonly Database Database;
 
         public SpatialReferenceSystem SpatialReferenceSystem => Database.SpatialReferenceSystem(SpatialReferenceSystemID);
+        public IEnumerable<GeometryColumn> GeometryColumns() => Database.GeometryColumns(TableName);
 
         internal ICoordinateTransformation TransformFrom = null;
         internal ICoordinateTransformation TransformTo = null;
@@ -38,6 +38,26 @@ namespace Cognitics.GeoPackage
                     var appSRS = SpatialReferenceSystem.ProjNetCoordinateSystem(Database.ApplicationSpatialReferenceSystem.Definition);
                     TransformFrom = SpatialReferenceSystem.ProjNetTransform(layerSRS, appSRS);
                     TransformTo = SpatialReferenceSystem.ProjNetTransform(appSRS, layerSRS);
+                }
+            }
+        }
+
+        public IEnumerable<Feature> Features()
+        {
+            // *** WARNING *** : table name cannot be parameterized ; this is vulnerable to sql injection
+            using (var cmd = Database.Connection.CreateCommand())
+            {
+                cmd.CommandText = "SELECT * FROM " + TableName;
+                cmd.CommandType = CommandType.Text;
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var result = new Feature();
+                        for (int i = 0; i < reader.FieldCount; ++i)
+                            result.Attributes[reader.GetName(i)] = reader.GetValue(i);
+                        yield return result;
+                    }
                 }
             }
         }

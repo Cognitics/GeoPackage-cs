@@ -158,26 +158,6 @@ namespace Cognitics.GeoPackage
             }
         }
 
-        public IEnumerable<Feature> Features(Layer layer)
-        {
-            // *** WARNING *** : table name cannot be parameterized ; this is vulnerable to sql injection
-            using (var cmd = Connection.CreateCommand())
-            {
-                cmd.CommandText = "SELECT * FROM " + layer.TableName;
-                cmd.CommandType = CommandType.Text;
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var result = new Feature();
-                        for (int i = 0; i < reader.FieldCount; ++i)
-                            result.Attributes[reader.GetName(i)] = reader.GetValue(i);
-                        yield return result;
-                    }
-                }
-            }
-        }
-
 
     }
 }

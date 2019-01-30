@@ -11,8 +11,6 @@ namespace Cognitics.GeoPackage
         {
         }
 
-        public IEnumerable<GeometryColumn> GeometryColumns() => Database.GeometryColumns(TableName);
-
 
     }
 }
