@@ -127,6 +127,13 @@ namespace Cognitics.GeoPackage
             }
         }
 
+        public IEnumerable<Layer> Layers(double minX, double maxX, double minY, double maxY, string dataType = null)
+        {
+            // TODO
+
+            return null;
+        }
+
         public IEnumerable<Layer> FeatureLayers() => Layers("features");
 
         /// <summary>

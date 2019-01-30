@@ -45,6 +45,13 @@ namespace Cognitics.GeoPackage
             }
         }
 
+        public IEnumerable<Feature> Features(double minX, double maxX, double minY, double maxY)
+        {
+            // TODO
+
+            return null;
+        }
+
 
     }
 }

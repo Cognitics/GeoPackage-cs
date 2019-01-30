@@ -13,7 +13,8 @@ namespace Cognitics.GeoPackage.test
         [Test]
         public void TestDatabase()
         {
-            string filename = "D:/GGDM_GeoPackage_Korea4.gpkg";
+            //string filename = "D:/GGDM_GeoPackage_Korea4.gpkg";
+            string filename = "D:/natural_earth_vector.4.1.0.gpkg";
             var db = new Database(filename);
             db.ApplicationSpatialReferenceSystem = db.SpatialReferenceSystem(4326);
             foreach(FeatureLayer layer in db.FeatureLayers())
@@ -27,7 +28,7 @@ namespace Cognitics.GeoPackage.test
                 {
                     System.Diagnostics.Debug.WriteLine("FEATURE " + feature.Attributes["OBJECTID"] + ": " + feature.Geometry.ToString());
 
-                    break;
+                    //break;
                 }
 
                 break;
