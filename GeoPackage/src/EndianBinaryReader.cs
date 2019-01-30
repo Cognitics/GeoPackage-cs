@@ -10,6 +10,16 @@ namespace Cognitics.GeoPackage
         public EndianBinaryReader(Stream input, Encoding encoding) : base(input, encoding) { }
         public EndianBinaryReader(Stream input, Encoding encoding, bool leaveOpen) : base(input, encoding, leaveOpen) { }
 
+
+        public ushort ReadUInt16Endian(bool littleEndian) => littleEndian ? ReadUInt16Little() : ReadUInt16Big();
+        public short ReadInt16Endian(bool littleEndian) => littleEndian ? ReadInt16Little() : ReadInt16Big();
+        public uint ReadUInt32Endian(bool littleEndian) => littleEndian ? ReadUInt32Little() : ReadUInt32Big();
+        public int ReadInt32Endian(bool littleEndian) => littleEndian ? ReadInt32Little() : ReadInt32Big();
+        public ulong ReadUInt64Endian(bool littleEndian) => littleEndian ? ReadUInt64Little() : ReadUInt64Big();
+        public long ReadInt64Endian(bool littleEndian) => littleEndian ? ReadInt64Little() : ReadInt64Big();
+        public float ReadSingleEndian(bool littleEndian) => littleEndian ? ReadSingleLittle() : ReadSingleBig();
+        public double ReadDoubleEndian(bool littleEndian) => littleEndian ? ReadDoubleLittle() : ReadDoubleBig();
+
         public ushort ReadUInt16Big() => BitConverter.IsLittleEndian ? ReadUInt16Swapped() : ReadUInt16();
         public ushort ReadUInt16Little() => BitConverter.IsLittleEndian ? ReadUInt16() : ReadUInt16Swapped();
         public short ReadInt16Big() => BitConverter.IsLittleEndian ? ReadInt16Swapped() : ReadInt16();

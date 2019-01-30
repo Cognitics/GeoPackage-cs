@@ -14,19 +14,17 @@ namespace Cognitics.GeoPackage.test
         public void TestDatabase()
         {
             string filename = "D:/GGDM_GeoPackage_Korea4.gpkg";
-            var db = new Database(filename);
+            var db = new Database(filename, new SpatialReferenceSystem("WGS84"));
             foreach(FeatureLayer layer in db.FeatureLayers())
             {
                 System.Diagnostics.Debug.WriteLine("LAYER " + layer.TableName);
-                var log = new List<string>();
-                log.Add("LAYER " + layer.TableName);
                 foreach (var geometryColumn in layer.GeometryColumns())
-                    log.Add("GEOMETRYCOLUMN " + geometryColumn.ColumnName + " (" + geometryColumn.GeometryTypeName + ")");
+                    System.Diagnostics.Debug.WriteLine("GEOMETRYCOLUMN " + geometryColumn.ColumnName + " (" + geometryColumn.GeometryTypeName + ")");
                 foreach (var field in layer.Fields())
-                    log.Add("FIELD " + field.Item1 + " (" + field.Item2 + ")");
+                    System.Diagnostics.Debug.WriteLine("FIELD " + field.Item1 + " (" + field.Item2 + ")");
                 foreach (var feature in layer.Features())
                 {
-                    log.Add("FEATURE " + feature.Attributes["OBJECTID"]);
+                    System.Diagnostics.Debug.WriteLine("FEATURE " + feature.Attributes["OBJECTID"]);
 
                     break;
                 }

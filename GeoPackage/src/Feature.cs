@@ -5,7 +5,7 @@ namespace Cognitics.GeoPackage
 {
     public class Feature
     {
-        public object Geometry = null;
+        public Geometry Geometry = null;
         public Dictionary<string, object> Attributes = new Dictionary<string, object>();
     }
 }
