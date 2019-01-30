@@ -21,11 +21,9 @@ namespace Cognitics.GeoPackage
         public static ICoordinateTransformation ProjNetTransform(ICoordinateSystem source, ICoordinateSystem target)
             => new CoordinateTransformationFactory().CreateFromCoordinateSystems(source, target);
 
-        void srs()
-        {
-            var factory = new CoordinateSystemFactory();
-            factory.CreateFromWkt(Definition);
-        }
+        public SpatialReferenceSystem() { }
+        public SpatialReferenceSystem(string wkt) { Definition = wkt; }
+        ICoordinateSystem ProjNetCoordinateSystem() => ProjNetCoordinateSystem(Definition);
 
 
     }

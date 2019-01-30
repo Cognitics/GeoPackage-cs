@@ -128,6 +128,9 @@ namespace Cognitics.GeoPackage
             }
         }
 
+        public IEnumerable<Layer> FeatureLayers() => Layers("features");
+
+
         public IEnumerable<GeometryColumn> GeometryColumns(string tableName = null)
         {
             using (var cmd = Connection.CreateCommand())

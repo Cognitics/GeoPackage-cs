@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Collections.Generic;
+using System.Linq;
 using ProjNet.CoordinateSystems.Transformations;
 
 namespace Cognitics.GeoPackage
@@ -42,22 +43,20 @@ namespace Cognitics.GeoPackage
             }
         }
 
-        public IEnumerable<Feature> Features()
+        public GeometryColumn GeometryColumn()
         {
-            // *** WARNING *** : table name cannot be parameterized ; this is vulnerable to sql injection
-            using (var cmd = Database.Connection.CreateCommand())
+            foreach (var geometryColumn in GeometryColumns())
+                return geometryColumn;
+            return null;
+        }
+
+        public IEnumerable<Tuple<string, string>> Fields()
+        {
+            using (var tableSchema = Database.Connection.GetSchema("Columns", new string[] { null, null, TableName }))
             {
-                cmd.CommandText = "SELECT * FROM " + TableName;
-                cmd.CommandType = CommandType.Text;
-                using (var reader = cmd.ExecuteReader())
+                foreach(DataRow row in tableSchema.Rows)
                 {
-                    while (reader.Read())
-                    {
-                        var result = new Feature();
-                        for (int i = 0; i < reader.FieldCount; ++i)
-                            result.Attributes[reader.GetName(i)] = reader.GetValue(i);
-                        yield return result;
-                    }
+                    yield return new Tuple<string, string>(row["COLUMN_NAME"].ToString(), row["DATA_TYPE"].ToString());
                 }
             }
         }
