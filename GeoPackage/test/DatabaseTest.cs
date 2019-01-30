@@ -25,7 +25,7 @@ namespace Cognitics.GeoPackage.test
                     System.Diagnostics.Debug.WriteLine("FIELD " + field.Item1 + " (" + field.Item2 + ")");
                 foreach (var feature in layer.Features())
                 {
-                    System.Diagnostics.Debug.WriteLine("FEATURE " + feature.Attributes["OBJECTID"]);
+                    System.Diagnostics.Debug.WriteLine("FEATURE " + feature.Attributes["OBJECTID"] + ": " + feature.Geometry.ToString());
 
                     break;
                 }

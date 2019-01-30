@@ -37,7 +37,7 @@ namespace Cognitics.GeoPackage
                 {
                     if (layerSpatialReferenceSystem.ID == 0)
                         layerSpatialReferenceSystem = Database.SpatialReferenceSystem(4326);
-                    //if (layerSpatialReferenceSystem.Definition != Database.ApplicationSpatialReferenceSystem.Definition)
+                    if (layerSpatialReferenceSystem.Definition != Database.ApplicationSpatialReferenceSystem.Definition)
                     {
                         try
                         {
