@@ -17,6 +17,7 @@ namespace Cognitics.GeoPackage.test
             var db = new Database(filename);
             foreach(FeatureLayer layer in db.FeatureLayers())
             {
+                System.Diagnostics.Debug.WriteLine("LAYER " + layer.TableName);
                 var log = new List<string>();
                 log.Add("LAYER " + layer.TableName);
                 foreach (var geometryColumn in layer.GeometryColumns())
