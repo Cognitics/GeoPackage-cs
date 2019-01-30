@@ -120,6 +120,67 @@ namespace Cognitics.GeoPackage
             }
         }
 
+        /// <summary>
+        /// Requirement 18 of the GeoPackage standard requires the extents in gpkg_tile_matrix_set
+        /// to be exact, whereas the extents in gpkg_contents are informational only.
+        /// This method corrects the extents by reading gpkg_tile_matrix_set for raster layers.
+        /// </summary>
+        /// <param name="layer"></param>
+        /// <returns></returns>
+        public bool SetRasterExtentsFromTileMatrixSet(RasterLayer layer)
+        {
+            using (var cmd = Connection.CreateCommand())
+            {
+                cmd.CommandText = "SELECT * FROM gpkg_tile_matrix_set";
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandText += " WHERE table_name=@table_name";
+                cmd.Parameters.Add(new SQLiteParameter("@table_name", layer.TableName));
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        layer.MinX = GetFieldValue(reader, reader.GetOrdinal("min_x"), double.MinValue);
+                        layer.MinY = GetFieldValue(reader, reader.GetOrdinal("min_y"), double.MinValue);
+                        layer.MaxX = GetFieldValue(reader, reader.GetOrdinal("max_x"), double.MaxValue);
+                        layer.MaxY = GetFieldValue(reader, reader.GetOrdinal("max_y"), double.MaxValue);
+                    }
+                }
+            }
+            return true;
+        }
+
+        public IEnumerable<TileMatrix> TileMatrixSet(string tableName)
+        {
+            using (var cmd = Connection.CreateCommand())
+            {
+                cmd.CommandText = "SELECT * FROM gpkg_tile_matrix";
+                cmd.CommandType = CommandType.Text;
+                if (tableName != null)
+                {
+                    cmd.CommandText += " WHERE table_name=@table_name";
+                    cmd.Parameters.Add(new SQLiteParameter("@table_name", tableName));
+                }
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var result = new TileMatrix
+                        {
+                            TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), ""),
+                            ZoomLevel = GetFieldValue(reader, reader.GetOrdinal("zoom_level"), (int)0),
+                            TilesWide = GetFieldValue(reader, reader.GetOrdinal("matrix_width"), (int)0),
+                            TilesHigh = GetFieldValue(reader, reader.GetOrdinal("matrix_height"), (int)0),
+                            TileWidth = GetFieldValue(reader, reader.GetOrdinal("tile_width"), (int)0),
+                            TileHeight = GetFieldValue(reader, reader.GetOrdinal("tile_height"), (int)0),
+                            PixelXSize = GetFieldValue(reader, reader.GetOrdinal("pixel_x_size"), 0.0),
+                            PixelYSize = GetFieldValue(reader, reader.GetOrdinal("pixel_y_size"), 0.0),
+                        };
+                        yield return result;
+                    }
+                }
+            }
+        }
+
         public IEnumerable<GeometryColumn> GeometryColumns(string tableName = null)
         {
             using (var cmd = Connection.CreateCommand())
@@ -145,6 +206,59 @@ namespace Cognitics.GeoPackage
                             z = GetFieldValue(reader, reader.GetOrdinal("z"), (byte)0)
                         };
                         yield return result;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Read a single tile
+        /// </summary>
+        /// <param name="tableName"></param>
+        /// <param name="zoomLevel"></param>
+        /// <param name="row"></param>
+        /// <param name="col"></param>
+        /// <returns></returns>
+        public Tile Tile(string tableName, int zoomLevel, int row, int col)
+        {
+            using (var cmd = Connection.CreateCommand())
+            {
+                // *** WARNING *** : table name cannot be parameterized ; this is vulnerable to sql injection
+                cmd.CommandText = "SELECT * FROM " + tableName;
+                cmd.CommandType = CommandType.Text;
+                if (tableName != null)
+                {
+                    cmd.CommandText += " WHERE zoom_level=@zoom_level and tile_column=@tile_column and tile_row=@tile_row";
+                    cmd.Parameters.Add(new SQLiteParameter("@zoom_level", zoomLevel));
+                    cmd.Parameters.Add(new SQLiteParameter("@tile_column", col));
+                    cmd.Parameters.Add(new SQLiteParameter("@tile_row", row));
+                }
+                
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if(reader.Read())
+                    {
+                        var result = new Tile
+                        {
+                            Id = GetFieldValue(reader, reader.GetOrdinal("id"), 0),
+                            ZoomLevel = GetFieldValue(reader, reader.GetOrdinal("zoom_level"), 0),
+                            TileColumn = GetFieldValue(reader, reader.GetOrdinal("tile_column"), 0),
+                            TileRow = GetFieldValue(reader, reader.GetOrdinal("tile_row"), 0),
+                        };
+                        int ordinal = reader.GetOrdinal("tile_data");
+                        if (!reader.IsDBNull(ordinal))
+                        {
+                            System.IO.Stream s = reader.GetStream(ordinal);
+                            long stest = s.Length;
+                            byte[] buf = new byte[s.Length];
+                            s.Read(buf, 0, (int)s.Length);
+                            result.Bytes = buf;
+                        }
+                        return result;
+                    }
+                    else
+                    {
+                        return null;
                     }
                 }
             }
