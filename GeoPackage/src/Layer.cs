@@ -24,6 +24,22 @@ namespace Cognitics.GeoPackage
         public SpatialReferenceSystem SpatialReferenceSystem => Database.SpatialReferenceSystem(SpatialReferenceSystemID);
         public IEnumerable<GeometryColumn> GeometryColumns() => Database.GeometryColumns(TableName);
 
+        public GeometryColumn GeometryColumn()
+        {
+            foreach (var geometryColumn in GeometryColumns())
+                return geometryColumn;
+            return null;
+        }
+
+        public IEnumerable<Tuple<string, string>> Fields()
+        {
+            using (var tableSchema = Database.Connection.GetSchema("Columns", new string[] { null, null, TableName }))
+                foreach(DataRow row in tableSchema.Rows)
+                    yield return new Tuple<string, string>(row["COLUMN_NAME"].ToString(), row["DATA_TYPE"].ToString());
+        }
+
+        #region implementation
+
         internal ICoordinateTransformation TransformFrom = null;
         internal ICoordinateTransformation TransformTo = null;
 
@@ -52,24 +68,7 @@ namespace Cognitics.GeoPackage
             }
         }
 
-        public GeometryColumn GeometryColumn()
-        {
-            foreach (var geometryColumn in GeometryColumns())
-                return geometryColumn;
-            return null;
-        }
-
-        public IEnumerable<Tuple<string, string>> Fields()
-        {
-            using (var tableSchema = Database.Connection.GetSchema("Columns", new string[] { null, null, TableName }))
-            {
-                foreach(DataRow row in tableSchema.Rows)
-                {
-                    yield return new Tuple<string, string>(row["COLUMN_NAME"].ToString(), row["DATA_TYPE"].ToString());
-                }
-            }
-        }
-
+        #endregion
 
 
     }
