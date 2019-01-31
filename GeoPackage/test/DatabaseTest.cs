@@ -17,7 +17,14 @@ namespace Cognitics.GeoPackage.test
             string filename = "D:/natural_earth_vector.4.1.0.gpkg";
             var db = new Database(filename);
             db.ApplicationSpatialReferenceSystem = db.SpatialReferenceSystem(4326);
-            foreach(FeatureLayer layer in db.FeatureLayers())
+            int layerCount = 0;
+            foreach (Layer layer in db.Layers(-180.0f, -170.0f, -90.0f, -80.0f))
+            {
+                System.Diagnostics.Debug.WriteLine("LAYER " + layer.TableName);
+                ++layerCount;
+            }
+            /*
+            foreach(FeatureLayer layer in db.Layers(-180.0f, -170.0f, -90.0f, -80.0f))
             {
                 System.Diagnostics.Debug.WriteLine("LAYER " + layer.TableName);
                 foreach (var geometryColumn in layer.GeometryColumns())
@@ -33,6 +40,7 @@ namespace Cognitics.GeoPackage.test
 
                 break;
             }
+            */
 
 
 

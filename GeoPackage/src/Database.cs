@@ -36,105 +36,180 @@ namespace Cognitics.GeoPackage
             return result;
         }
 
-        public IEnumerable<SpatialReferenceSystem> SpatialReferenceSystems()
+        #region SpatialReferenceSystems
+
+        private SpatialReferenceSystem SpatialReferenceSystem(SQLiteDataReader reader)
         {
-            using (var cmd = Connection.CreateCommand())
+            var result = new SpatialReferenceSystem
             {
-                cmd.CommandText = "SELECT * FROM gpkg_spatial_ref_sys";
-                cmd.CommandType = CommandType.Text;
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var result = new SpatialReferenceSystem
-                        {
-                            ID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
-                            Name = GetFieldValue(reader, reader.GetOrdinal("srs_name"), ""),
-                            Organization = GetFieldValue(reader, reader.GetOrdinal("organization"), ""),
-                            OrganizationCoordinateSystemID = GetFieldValue(reader, reader.GetOrdinal("organization_coordsys_id"), (long)0),
-                            Definition = GetFieldValue(reader, reader.GetOrdinal("definition"), ""),
-                            Description = GetFieldValue(reader, reader.GetOrdinal("description"), "")
-                        };
-                        yield return result;
-                    }
-                }
-            }
+                ID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
+                Name = GetFieldValue(reader, reader.GetOrdinal("srs_name"), ""),
+                Organization = GetFieldValue(reader, reader.GetOrdinal("organization"), ""),
+                OrganizationCoordinateSystemID = GetFieldValue(reader, reader.GetOrdinal("organization_coordsys_id"), (long)0),
+                Definition = GetFieldValue(reader, reader.GetOrdinal("definition"), ""),
+                Description = GetFieldValue(reader, reader.GetOrdinal("description"), "")
+            };
+            return result;
         }
 
         public SpatialReferenceSystem SpatialReferenceSystem(long id)
         {
             using (var cmd = Connection.CreateCommand())
             {
-                cmd.CommandText = "SELECT * FROM gpkg_spatial_ref_sys WHERE srs_id=@srs_id";
                 cmd.CommandType = CommandType.Text;
+                cmd.CommandText = "SELECT * FROM gpkg_spatial_ref_sys WHERE srs_id=@srs_id";
                 cmd.Parameters.Add(new SQLiteParameter("@srs_id", id));
                 using (var reader = cmd.ExecuteReader())
-                {
-                    if(reader.Read())
-                    {
-                        var result = new SpatialReferenceSystem
-                        {
-                            ID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
-                            Name = GetFieldValue(reader, reader.GetOrdinal("srs_name"), ""),
-                            Organization = GetFieldValue(reader, reader.GetOrdinal("organization"), ""),
-                            OrganizationCoordinateSystemID = GetFieldValue(reader, reader.GetOrdinal("organization_coordsys_id"), (long)0),
-                            Definition = GetFieldValue(reader, reader.GetOrdinal("definition"), ""),
-                            Description = GetFieldValue(reader, reader.GetOrdinal("description"), "")
-                        };
-                        return result;
-                    }
-                }
+                    while (reader.Read())
+                        return SpatialReferenceSystem(reader);
             }
             return null;
         }
 
-        public IEnumerable<Layer> Layers(string dataType = null)
+        public IEnumerable<SpatialReferenceSystem> SpatialReferenceSystems()
         {
             using (var cmd = Connection.CreateCommand())
             {
-                cmd.CommandText = "SELECT * FROM gpkg_contents";
                 cmd.CommandType = CommandType.Text;
-                if (dataType != null)
+                cmd.CommandText = "SELECT * FROM gpkg_spatial_ref_sys";
+                using (var reader = cmd.ExecuteReader())
+                    while (reader.Read())
+                        yield return SpatialReferenceSystem(reader);
+            }
+        }
+
+        #endregion
+
+        #region Layers
+
+        private Layer Layer(SQLiteDataReader reader)
+        {
+            string layerType = GetFieldValue(reader, reader.GetOrdinal("data_type"), "");
+            Layer result = null;
+            if (layerType == "features")
+                result = new FeatureLayer(this);
+            if (layerType == "raster")
+                result = new RasterLayer(this);
+            if (result == null)
+                result = new Layer(this);
+            result.TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), "");
+            result.DataType = GetFieldValue(reader, reader.GetOrdinal("data_type"), "");
+            result.Identifier = GetFieldValue(reader, reader.GetOrdinal("identifier"), "");
+            result.Description = GetFieldValue(reader, reader.GetOrdinal("description"), "");
+            result.LastChange = reader.GetDateTime(reader.GetOrdinal("last_change"));
+            result.MinX = GetFieldValue(reader, reader.GetOrdinal("min_x"), double.MinValue);
+            result.MinY = GetFieldValue(reader, reader.GetOrdinal("min_y"), double.MinValue);
+            result.MaxX = GetFieldValue(reader, reader.GetOrdinal("max_x"), double.MaxValue);
+            result.MaxY = GetFieldValue(reader, reader.GetOrdinal("max_y"), double.MaxValue);
+            result.SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0);
+            return result;
+        }
+
+        public IEnumerable<Layer> Layers()
+        {
+            using (var cmd = Connection.CreateCommand())
+            {
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandText = "SELECT * FROM gpkg_contents";
+                using (var reader = cmd.ExecuteReader())
+                    while (reader.Read())
+                        yield return Layer(reader);
+            }
+        }
+
+        public IEnumerable<Layer> Layers(string dataType)
+        {
+            using (var cmd = Connection.CreateCommand())
+            {
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandText = "SELECT * FROM gpkg_contents WHERE data_type=@data_type";
+                cmd.Parameters.Add(new SQLiteParameter("@data_type", dataType));
+                using (var reader = cmd.ExecuteReader())
+                    while (reader.Read())
+                        yield return Layer(reader);
+            }
+        }
+
+        public IEnumerable<Layer> Layers(double minX, double maxX, double minY, double maxY)
+        {
+            // TODO: use rtree if available
+            using (var cmd = Connection.CreateCommand())
+            {
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandText = "SELECT * FROM gpkg_contents WHERE ";
+                cmd.CommandText += "(min_x <= @max_x) AND (max_x >= @min_x) AND ";
+                cmd.CommandText += "(min_y <= @max_y) AND (max_y >= @min_y)";
+                cmd.Parameters.Add(new SQLiteParameter("@min_x", minX));
+                cmd.Parameters.Add(new SQLiteParameter("@max_x", maxX));
+                cmd.Parameters.Add(new SQLiteParameter("@min_y", minY));
+                cmd.Parameters.Add(new SQLiteParameter("@max_y", maxY));
+                using (var reader = cmd.ExecuteReader())
+                    while (reader.Read())
+                        yield return Layer(reader);
+            }
+        }
+
+        public IEnumerable<Layer> Layers(string dataType, double minX, double maxX, double minY, double maxY)
+        {
+            // TODO: use rtree if available
+            using (var cmd = Connection.CreateCommand())
+            {
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandText = "SELECT * FROM gpkg_contents WHERE data_type=@data_type";
+                cmd.CommandText += "(min_x <= @max_x) AND (max_x >= @min_x) AND ";
+                cmd.CommandText += "(min_y <= @max_y) AND (max_y >= @min_y)";
+                cmd.Parameters.Add(new SQLiteParameter("@data_type", dataType));
+                cmd.Parameters.Add(new SQLiteParameter("@min_x", minX));
+                cmd.Parameters.Add(new SQLiteParameter("@max_x", maxX));
+                cmd.Parameters.Add(new SQLiteParameter("@min_y", minY));
+                cmd.Parameters.Add(new SQLiteParameter("@max_y", maxY));
+                using (var reader = cmd.ExecuteReader())
+                    while (reader.Read())
+                        yield return Layer(reader);
+            }
+        }
+
+        public IEnumerable<Layer> FeatureLayers() => Layers("features");
+        public IEnumerable<Layer> FeatureLayers(double minX, double maxX, double minY, double maxY)
+            => Layers("features", minX, maxX, minY, maxY);
+
+        #endregion
+
+        #region GeometryColumns
+
+        public IEnumerable<GeometryColumn> GeometryColumns(string tableName = null)
+        {
+            using (var cmd = Connection.CreateCommand())
+            {
+                cmd.CommandText = "SELECT * FROM gpkg_geometry_columns";
+                cmd.CommandType = CommandType.Text;
+                if (tableName != null)
                 {
-                    cmd.CommandText += " WHERE data_type=@data_type";
-                    cmd.Parameters.Add(new SQLiteParameter("@data_type", dataType));
+                    cmd.CommandText += " WHERE table_name=@table_name";
+                    cmd.Parameters.Add(new SQLiteParameter("@table_name", tableName));
                 }
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        string layerType = GetFieldValue(reader, reader.GetOrdinal("data_type"), "");
-                        Layer result = null;
-                        if (layerType == "features")
-                            result = new FeatureLayer(this);
-                        if (layerType == "raster")
-                            result = new RasterLayer(this);
-                        if (result == null)
-                            result = new Layer(this);
-                        result.TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), "");
-                        result.DataType = GetFieldValue(reader, reader.GetOrdinal("data_type"), "");
-                        result.Identifier = GetFieldValue(reader, reader.GetOrdinal("identifier"), "");
-                        result.Description = GetFieldValue(reader, reader.GetOrdinal("description"), "");
-                        result.LastChange = reader.GetDateTime(reader.GetOrdinal("last_change"));
-                        result.MinX = GetFieldValue(reader, reader.GetOrdinal("min_x"), double.MinValue);
-                        result.MinY = GetFieldValue(reader, reader.GetOrdinal("min_y"), double.MinValue);
-                        result.MaxX = GetFieldValue(reader, reader.GetOrdinal("max_x"), double.MaxValue);
-                        result.MaxY = GetFieldValue(reader, reader.GetOrdinal("max_y"), double.MaxValue);
-                        result.SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0);
+                        var result = new GeometryColumn
+                        {
+                            TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), ""),
+                            ColumnName = GetFieldValue(reader, reader.GetOrdinal("column_name"), ""),
+                            GeometryTypeName = GetFieldValue(reader, reader.GetOrdinal("geometry_type_name"), ""),
+                            SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
+                            m = GetFieldValue(reader, reader.GetOrdinal("m"), (byte)0),
+                            z = GetFieldValue(reader, reader.GetOrdinal("z"), (byte)0)
+                        };
                         yield return result;
                     }
                 }
             }
         }
 
-        public IEnumerable<Layer> Layers(double minX, double maxX, double minY, double maxY, string dataType = null)
-        {
-            // TODO
+        #endregion
 
-            return null;
-        }
-
-        public IEnumerable<Layer> FeatureLayers() => Layers("features");
+        #region Tiles
 
         /// <summary>
         /// Requirement 18 of the GeoPackage standard requires the extents in gpkg_tile_matrix_set
@@ -197,36 +272,6 @@ namespace Cognitics.GeoPackage
             }
         }
 
-        public IEnumerable<GeometryColumn> GeometryColumns(string tableName = null)
-        {
-            using (var cmd = Connection.CreateCommand())
-            {
-                cmd.CommandText = "SELECT * FROM gpkg_geometry_columns";
-                cmd.CommandType = CommandType.Text;
-                if (tableName != null)
-                {
-                    cmd.CommandText += " WHERE table_name=@table_name";
-                    cmd.Parameters.Add(new SQLiteParameter("@table_name", tableName));
-                }
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var result = new GeometryColumn
-                        {
-                            TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), ""),
-                            ColumnName = GetFieldValue(reader, reader.GetOrdinal("column_name"), ""),
-                            GeometryTypeName = GetFieldValue(reader, reader.GetOrdinal("geometry_type_name"), ""),
-                            SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
-                            m = GetFieldValue(reader, reader.GetOrdinal("m"), (byte)0),
-                            z = GetFieldValue(reader, reader.GetOrdinal("z"), (byte)0)
-                        };
-                        yield return result;
-                    }
-                }
-            }
-        }
-
         /// <summary>
         /// Read a single tile
         /// </summary>
@@ -280,26 +325,7 @@ namespace Cognitics.GeoPackage
             }
         }
 
-        public IEnumerable<Feature> Features(Layer layer)
-        {
-            // *** WARNING *** : table name cannot be parameterized ; this is vulnerable to sql injection
-            using (var cmd = Connection.CreateCommand())
-            {
-                cmd.CommandText = "SELECT * FROM " + layer.TableName;
-                cmd.CommandType = CommandType.Text;
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var result = new Feature();
-                        for (int i = 0; i < reader.FieldCount; ++i)
-                            result.Attributes[reader.GetName(i)] = reader.GetValue(i);
-                        yield return result;
-                    }
-                }
-            }
-        }
-
+        #endregion
 
     }
 }
