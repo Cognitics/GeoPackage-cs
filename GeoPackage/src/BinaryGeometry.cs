@@ -8,6 +8,18 @@ namespace Cognitics.GeoPackage
         public int SpatialReferenceSystemID;
         public Point[] Envelope = null;
 
+        static public Geometry Read(Stream stream)
+        {
+            var binaryGeometry = new BinaryGeometry();
+            var reader = new EndianBinaryReader(stream);
+            if (!binaryGeometry.ReadHeader(reader))
+                return null;
+            return binaryGeometry.ReadGeometry(reader);
+        }
+
+
+        #region implementation
+
         private bool ReadHeader(EndianBinaryReader reader)
         {
             var gp = reader.ReadBytes(2);
@@ -188,15 +200,7 @@ namespace Cognitics.GeoPackage
             return null;
         }
 
-        static public Geometry Read(Stream stream)
-        {
-            var binaryGeometry = new BinaryGeometry();
-            var reader = new EndianBinaryReader(stream);
-            if (!binaryGeometry.ReadHeader(reader))
-                return null;
-            return binaryGeometry.ReadGeometry(reader);
-        }
-
+        #endregion
 
     }
 
