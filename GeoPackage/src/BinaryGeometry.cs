@@ -29,15 +29,15 @@ namespace Cognitics.GeoPackage
                 return false;
             Version = reader.ReadByte();
             var flags = reader.ReadByte();
-            int flags_binaryType = flags & (1 << 5);
-            int flags_emptyGeometry = flags & (1 << 4);
-            int flags_envelopeContents = flags & 14;
+            int flags_binaryType = (flags & (1 << 5)) >> 5;
+            int flags_emptyGeometry = (flags & (1 << 4)) >> 4;
+            int flags_envelopeContents = (flags & 14) >> 1;
             int flags_byteOrder = flags & 1;
-            bool isLittleEndian = flags_byteOrder == 1;
+            bool isLittleEndian = flags_byteOrder != 0;
             SpatialReferenceSystemID = reader.ReadInt32Endian(isLittleEndian);
             if (flags_envelopeContents > 0)
             {
-                Envelope = new Point[2];
+                Envelope = new Point[2] { new Point(), new Point() } ;
                 Envelope[0].X = reader.ReadDoubleEndian(isLittleEndian);
                 Envelope[1].X = reader.ReadDoubleEndian(isLittleEndian);
                 Envelope[0].Y = reader.ReadDoubleEndian(isLittleEndian);

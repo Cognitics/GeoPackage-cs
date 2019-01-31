@@ -25,19 +25,16 @@ namespace Cognitics.GeoPackage
             }
         }
 
-        // TODO: this requires rtree
-        /*
         public IEnumerable<Feature> Features(double minX, double maxX, double minY, double maxY)
         {
-            yield return null;
             var geometryColumn = GeometryColumn();
             using (var cmd = Database.Connection.CreateCommand())
             {
                 // *** WARNING *** : table name cannot be parameterized ; this is vulnerable to sql injection
                 cmd.CommandType = CommandType.Text;
-                cmd.CommandText = "SELECT * FROM " + TableName + " WHERE ";
-                cmd.CommandText += "(min_x <= @max_x) AND (max_x >= @min_x) AND ";
-                cmd.CommandText += "(min_y <= @max_y) AND (max_y >= @min_y)";
+                cmd.CommandText = "SELECT * FROM " + TableName + " WHERE fid IN (SELECT id FROM rtree_" + TableName + "_geom WHERE ";
+                cmd.CommandText += "(minx <= @max_x) AND (maxx >= @min_x) AND ";
+                cmd.CommandText += "(miny <= @max_y) AND (maxy >= @min_y))";
                 cmd.Parameters.Add(new SQLiteParameter("@min_x", minX));
                 cmd.Parameters.Add(new SQLiteParameter("@max_x", maxX));
                 cmd.Parameters.Add(new SQLiteParameter("@min_y", minY));
@@ -50,7 +47,6 @@ namespace Cognitics.GeoPackage
                 }
             }
         }
-        */
 
         #region implementation
 
