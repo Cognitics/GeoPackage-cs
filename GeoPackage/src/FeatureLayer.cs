@@ -20,7 +20,7 @@ namespace Cognitics.GeoPackage
                 {
                     int geometryColumnIndex = (geometryColumn == null) ? -1 : reader.GetOrdinal(geometryColumn.ColumnName);
                     while (reader.Read())
-                        yield return Feature(reader, geometryColumnIndex);
+                        yield return ReadFeature(reader, geometryColumnIndex);
                 }
             }
         }
@@ -43,7 +43,7 @@ namespace Cognitics.GeoPackage
                 {
                     int geometryColumnIndex = (geometryColumn == null) ? -1 : reader.GetOrdinal(geometryColumn.ColumnName);
                     while (reader.Read())
-                        yield return Feature(reader, geometryColumnIndex);
+                        yield return ReadFeature(reader, geometryColumnIndex);
                 }
             }
         }
@@ -54,7 +54,34 @@ namespace Cognitics.GeoPackage
         {
         }
 
-        private Feature Feature(SQLiteDataReader reader, int geometryColumnIndex)
+        public GeometryColumn GeometryColumn()
+        {
+            using (var cmd = Database.Connection.CreateCommand())
+            {
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandText = "SELECT * FROM gpkg_geometry_columns WHERE table_name=@table_name";
+                cmd.Parameters.Add(new SQLiteParameter("@table_name", TableName));
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var result = new GeometryColumn
+                        {
+                            TableName = Database.GetFieldValue(reader, reader.GetOrdinal("table_name"), ""),
+                            ColumnName = Database.GetFieldValue(reader, reader.GetOrdinal("column_name"), ""),
+                            GeometryTypeName = Database.GetFieldValue(reader, reader.GetOrdinal("geometry_type_name"), ""),
+                            SpatialReferenceSystemID = Database.GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
+                            m = Database.GetFieldValue(reader, reader.GetOrdinal("m"), (byte)0),
+                            z = Database.GetFieldValue(reader, reader.GetOrdinal("z"), (byte)0)
+                        };
+                        return result;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private Feature ReadFeature(SQLiteDataReader reader, int geometryColumnIndex)
         {
             var feature = new Feature();
             for (int i = 0; i < reader.FieldCount; ++i)

@@ -22,14 +22,6 @@ namespace Cognitics.GeoPackage
         public readonly Database Database;
 
         public SpatialReferenceSystem SpatialReferenceSystem => Database.SpatialReferenceSystem(SpatialReferenceSystemID);
-        public IEnumerable<GeometryColumn> GeometryColumns() => Database.GeometryColumns(TableName);
-
-        public GeometryColumn GeometryColumn()
-        {
-            foreach (var geometryColumn in GeometryColumns())
-                return geometryColumn;
-            return null;
-        }
 
         public IEnumerable<Tuple<string, string>> Fields()
         {
