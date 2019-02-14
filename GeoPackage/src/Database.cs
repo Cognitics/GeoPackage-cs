@@ -1,7 +1,9 @@
 ﻿
+using System;
 using System.Data;
 using System.Data.SQLite;
 using System.Collections.Generic;
+using ProjNet.CoordinateSystems.Transformations;
 
 namespace Cognitics.GeoPackage
 {
@@ -9,6 +11,7 @@ namespace Cognitics.GeoPackage
     {
         public readonly SQLiteConnection Connection;
         public SpatialReferenceSystem ApplicationSpatialReferenceSystem;
+
 
         public Database(string filename)
         {
@@ -25,7 +28,7 @@ namespace Cognitics.GeoPackage
                 cmd.Parameters.Add(new SQLiteParameter("@srs_id", id));
                 using (var reader = cmd.ExecuteReader())
                     while (reader.Read())
-                        return SpatialReferenceSystem(reader);
+                        return ReadSpatialReferenceSystem(reader);
             }
             return null;
         }
@@ -38,7 +41,7 @@ namespace Cognitics.GeoPackage
                 cmd.CommandText = "SELECT * FROM gpkg_spatial_ref_sys";
                 using (var reader = cmd.ExecuteReader())
                     while (reader.Read())
-                        yield return SpatialReferenceSystem(reader);
+                        yield return ReadSpatialReferenceSystem(reader);
             }
         }
 
@@ -123,7 +126,7 @@ namespace Cognitics.GeoPackage
             return reader.IsDBNull(ordinal) ? defaultValue : reader.GetFieldValue<T>(ordinal);
         }
 
-        private SpatialReferenceSystem SpatialReferenceSystem(SQLiteDataReader reader)
+        private SpatialReferenceSystem ReadSpatialReferenceSystem(SQLiteDataReader reader)
         {
             var result = new SpatialReferenceSystem
             {
@@ -140,24 +143,67 @@ namespace Cognitics.GeoPackage
         private Layer ReadLayer(SQLiteDataReader reader)
         {
             string layerType = GetFieldValue(reader, reader.GetOrdinal("data_type"), "");
-            Layer result = null;
+            Layer layer = null;
             if (layerType == "features")
-                result = new FeatureLayer(this);
+                layer = new FeatureLayer(this);
             if (layerType == "tiles")
-                result = new RasterLayer(this);
-            if (result == null)
-                result = new Layer(this);
-            result.TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), "");
-            result.DataType = GetFieldValue(reader, reader.GetOrdinal("data_type"), "");
-            result.Identifier = GetFieldValue(reader, reader.GetOrdinal("identifier"), "");
-            result.Description = GetFieldValue(reader, reader.GetOrdinal("description"), "");
-            result.LastChange = reader.GetDateTime(reader.GetOrdinal("last_change"));
-            result.MinX = GetFieldValue(reader, reader.GetOrdinal("min_x"), double.MinValue);
-            result.MinY = GetFieldValue(reader, reader.GetOrdinal("min_y"), double.MinValue);
-            result.MaxX = GetFieldValue(reader, reader.GetOrdinal("max_x"), double.MaxValue);
-            result.MaxY = GetFieldValue(reader, reader.GetOrdinal("max_y"), double.MaxValue);
-            result.SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0);
-            return result;
+                layer = new RasterLayer(this);
+            if (layer == null)
+                layer = new Layer(this);
+            layer.TableName = GetFieldValue(reader, reader.GetOrdinal("table_name"), "");
+            layer.DataType = GetFieldValue(reader, reader.GetOrdinal("data_type"), "");
+            layer.Identifier = GetFieldValue(reader, reader.GetOrdinal("identifier"), "");
+            layer.Description = GetFieldValue(reader, reader.GetOrdinal("description"), "");
+            layer.LastChange = reader.GetDateTime(reader.GetOrdinal("last_change"));
+            layer.MinX = GetFieldValue(reader, reader.GetOrdinal("min_x"), double.MinValue);
+            layer.MinY = GetFieldValue(reader, reader.GetOrdinal("min_y"), double.MinValue);
+            layer.MaxX = GetFieldValue(reader, reader.GetOrdinal("max_x"), double.MaxValue);
+            layer.MaxY = GetFieldValue(reader, reader.GetOrdinal("max_y"), double.MaxValue);
+            layer.SpatialReferenceSystemID = GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0);
+            /*
+            TODO: transformation handling for all queries and layers
+                gpkg_contents has srs (for min/max)
+                gpkg_geometry_columns has srs (for geometry)
+                gpkg_tile_matrix_set has srs (for zoomlevel bounds and matrix pixel size)
+
+
+            if (ApplicationSpatialReferenceSystem != null)
+            {
+                var layerSpatialReferenceSystem = layer.SpatialReferenceSystem;
+                if (layerSpatialReferenceSystem != null)
+                {
+                    if (layerSpatialReferenceSystem.ID == 0)
+                        layerSpatialReferenceSystem = SpatialReferenceSystem(4326);
+                    if (layerSpatialReferenceSystem.Definition != ApplicationSpatialReferenceSystem.Definition)
+                    {
+                        try
+                        {
+                            var layerSRS = GeoPackage.SpatialReferenceSystem.ProjNetCoordinateSystem(layerSpatialReferenceSystem.Definition);
+                            var appSRS = GeoPackage.SpatialReferenceSystem.ProjNetCoordinateSystem(ApplicationSpatialReferenceSystem.Definition);
+                            layer.TransformFrom = GeoPackage.SpatialReferenceSystem.ProjNetTransform(layerSRS, appSRS);
+                            layer.TransformTo = GeoPackage.SpatialReferenceSystem.ProjNetTransform(appSRS, layerSRS);
+                        }
+                        catch (ArgumentException) { }
+                    }
+                }
+                if (layer.TransformFrom != null)
+                {
+                    {
+                        var xy1 = new double[2] { layer.MinX, layer.MinY };
+                        var xy2 = layer.TransformFrom.MathTransform.Transform(xy1);
+                        layer.MinX = xy2[0];
+                        layer.MinY = xy2[1];
+                    }
+                    {
+                        var xy1 = new double[2] { layer.MaxX, layer.MaxY };
+                        var xy2 = layer.TransformFrom.MathTransform.Transform(xy1);
+                        layer.MaxX = xy2[0];
+                        layer.MaxY = xy2[1];
+                    }
+                }
+            }
+            */
+            return layer;
         }
 
         #endregion

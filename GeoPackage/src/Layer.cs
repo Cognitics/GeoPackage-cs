@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Data;
 using System.Collections.Generic;
-using System.Linq;
 using ProjNet.CoordinateSystems.Transformations;
 
 namespace Cognitics.GeoPackage
@@ -38,26 +37,6 @@ namespace Cognitics.GeoPackage
         internal Layer(Database database)
         {
             Database = database;
-            if (Database.ApplicationSpatialReferenceSystem != null)
-            {
-                var layerSpatialReferenceSystem = SpatialReferenceSystem;
-                if (layerSpatialReferenceSystem != null)
-                {
-                    if (layerSpatialReferenceSystem.ID == 0)
-                        layerSpatialReferenceSystem = Database.SpatialReferenceSystem(4326);
-                    if (layerSpatialReferenceSystem.Definition != Database.ApplicationSpatialReferenceSystem.Definition)
-                    {
-                        try
-                        {
-                            var layerSRS = SpatialReferenceSystem.ProjNetCoordinateSystem(layerSpatialReferenceSystem.Definition);
-                            var appSRS = SpatialReferenceSystem.ProjNetCoordinateSystem(Database.ApplicationSpatialReferenceSystem.Definition);
-                            TransformFrom = SpatialReferenceSystem.ProjNetTransform(layerSRS, appSRS);
-                            TransformTo = SpatialReferenceSystem.ProjNetTransform(appSRS, layerSRS);
-                        }
-                        catch (ArgumentException) { }
-                    }
-                }
-            }
         }
 
         #endregion
