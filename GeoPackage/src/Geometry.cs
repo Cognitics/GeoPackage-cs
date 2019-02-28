@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using ProjNet.CoordinateSystems.Transformations;
 
 namespace Cognitics.GeoPackage
 {
@@ -49,7 +48,7 @@ namespace Cognitics.GeoPackage
 
     public abstract class Geometry
     {
-        public abstract void Transform(ICoordinateTransformation transform);
+        //public abstract void Transform(ICoordinateTransformation transform);
     }
 
     public class Point : Geometry
@@ -59,6 +58,7 @@ namespace Cognitics.GeoPackage
         public double Z;
         public double M;
 
+        /*
         public override void Transform(ICoordinateTransformation transform)
         {
             var xy1 = new double[2]{ X, Y };
@@ -66,16 +66,19 @@ namespace Cognitics.GeoPackage
             X = xy2[0];
             Y = xy2[1];
         }
+        */
     }
 
     public class MultiGeometry<T> : Geometry where T : Geometry
     {
         public List<T> Geometries = new List<T>();
 
+        /*
         public override void Transform(ICoordinateTransformation transform)
         {
             Geometries.ForEach(geometry => geometry.Transform(transform));
         }
+        */
     }
 
     public class MultiPoint : MultiGeometry<Point> { }

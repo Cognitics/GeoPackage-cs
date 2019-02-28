@@ -1,7 +1,5 @@
 ﻿
 using System.Collections.Generic;
-using System.Data;
-using System.Data.SQLite;
 
 namespace Cognitics.GeoPackage
 {
@@ -10,41 +8,33 @@ namespace Cognitics.GeoPackage
 
         public IEnumerable<Feature> Features()
         {
+            // *** WARNING *** : table name cannot be parameterized ; this is vulnerable to sql injection
             var geometryColumn = GeometryColumn();
-            using (var cmd = Database.Connection.CreateCommand())
+            using (var statement = Database.Connection.Execute("SELECT * FROM " + TableName))
             {
-                // *** WARNING *** : table name cannot be parameterized ; this is vulnerable to sql injection
-                cmd.CommandType = CommandType.Text;
-                cmd.CommandText = "SELECT * FROM " + TableName;
-                using (var reader = cmd.ExecuteReader())
-                {
-                    int geometryColumnIndex = (geometryColumn == null) ? -1 : reader.GetOrdinal(geometryColumn.ColumnName);
-                    while (reader.Read())
-                        yield return ReadFeature(reader, geometryColumnIndex);
-                }
+                int geometryColumnIndex = (geometryColumn == null) ? -1 : statement.Ordinal(geometryColumn.ColumnName);
+                while(statement.Next())
+                    yield return ReadFeature(statement, geometryColumnIndex);
             }
         }
 
         public IEnumerable<Feature> Features(double minX, double maxX, double minY, double maxY)
         {
+            // *** WARNING *** : table name cannot be parameterized ; this is vulnerable to sql injection
             var geometryColumn = GeometryColumn();
-            using (var cmd = Database.Connection.CreateCommand())
+            string query = "SELECT * FROM " + TableName + " WHERE fid IN (SELECT id FROM rtree_" + TableName + "_geom WHERE ";
+            query += "(minx <= @max_x) AND (maxx >= @min_x) AND ";
+            query += "(miny <= @max_y) AND (maxy >= @min_y))";
+            using (var statement = Database.Connection.Prepare(query))
             {
-                // *** WARNING *** : table name cannot be parameterized ; this is vulnerable to sql injection
-                cmd.CommandType = CommandType.Text;
-                cmd.CommandText = "SELECT * FROM " + TableName + " WHERE fid IN (SELECT id FROM rtree_" + TableName + "_geom WHERE ";
-                cmd.CommandText += "(minx <= @max_x) AND (maxx >= @min_x) AND ";
-                cmd.CommandText += "(miny <= @max_y) AND (maxy >= @min_y))";
-                cmd.Parameters.Add(new SQLiteParameter("@min_x", minX));
-                cmd.Parameters.Add(new SQLiteParameter("@max_x", maxX));
-                cmd.Parameters.Add(new SQLiteParameter("@min_y", minY));
-                cmd.Parameters.Add(new SQLiteParameter("@max_y", maxY));
-                using (var reader = cmd.ExecuteReader())
-                {
-                    int geometryColumnIndex = (geometryColumn == null) ? -1 : reader.GetOrdinal(geometryColumn.ColumnName);
-                    while (reader.Read())
-                        yield return ReadFeature(reader, geometryColumnIndex);
-                }
+                statement.AddParameter("@min_x", minX);
+                statement.AddParameter("@max_x", maxX);
+                statement.AddParameter("@min_y", minY);
+                statement.AddParameter("@max_y", maxY);
+                statement.Execute();
+                int geometryColumnIndex = (geometryColumn == null) ? -1 : statement.Ordinal(geometryColumn.ColumnName);
+                while (statement.Next())
+                    yield return ReadFeature(statement, geometryColumnIndex);
             }
         }
 
@@ -56,47 +46,45 @@ namespace Cognitics.GeoPackage
 
         public GeometryColumn GeometryColumn()
         {
-            using (var cmd = Database.Connection.CreateCommand())
+            using (var statement = Database.Connection.Prepare("SELECT * FROM gpkg_geometry_columns WHERE table_name=@table_name"))
             {
-                cmd.CommandType = CommandType.Text;
-                cmd.CommandText = "SELECT * FROM gpkg_geometry_columns WHERE table_name=@table_name";
-                cmd.Parameters.Add(new SQLiteParameter("@table_name", TableName));
-                using (var reader = cmd.ExecuteReader())
+                statement.AddParameter("@table_name", TableName);
+                statement.Execute();
+                while (statement.Next())
                 {
-                    while (reader.Read())
+                    var result = new GeometryColumn
                     {
-                        var result = new GeometryColumn
-                        {
-                            TableName = Database.GetFieldValue(reader, reader.GetOrdinal("table_name"), ""),
-                            ColumnName = Database.GetFieldValue(reader, reader.GetOrdinal("column_name"), ""),
-                            GeometryTypeName = Database.GetFieldValue(reader, reader.GetOrdinal("geometry_type_name"), ""),
-                            SpatialReferenceSystemID = Database.GetFieldValue(reader, reader.GetOrdinal("srs_id"), (long)0),
-                            m = Database.GetFieldValue(reader, reader.GetOrdinal("m"), (byte)0),
-                            z = Database.GetFieldValue(reader, reader.GetOrdinal("z"), (byte)0)
-                        };
-                        return result;
-                    }
+                        TableName = statement.Value("table_name", ""),
+                        ColumnName = statement.Value("column_name", ""),
+                        GeometryTypeName = statement.Value("geometry_type_name", ""),
+                        SpatialReferenceSystemID = statement.Value("srs_id", (long)0),
+                        m = statement.Value("m", (byte)0),
+                        z = statement.Value("z", (byte)0)
+                    };
+                    return result;
                 }
             }
             return null;
         }
 
-        private Feature ReadFeature(SQLiteDataReader reader, int geometryColumnIndex)
+        private Feature ReadFeature(DBI.Statement statement, int geometryColumnIndex)
         {
             var feature = new Feature();
-            for (int i = 0; i < reader.FieldCount; ++i)
+            for (int i = 0; i < statement.FieldCount; ++i)
             {
                 if (i == geometryColumnIndex)
                 {
-                    feature.Geometry = BinaryGeometry.Read(reader.GetStream(i));
+                    feature.Geometry = BinaryGeometry.Read(statement.Stream(i));
                     if (feature.Geometry == null)
                         continue;
+                    /*
                     if (TransformFrom == null)
                         continue;
                     feature.Geometry.Transform(TransformFrom);
+                    */
                     continue;
                 }
-                feature.Attributes[reader.GetName(i)] = reader.GetValue(i);
+                feature.Attributes[statement.Key(i)] = statement.Value(i);
             }
             return feature;
         }
