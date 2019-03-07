@@ -10,13 +10,13 @@ using SQLiteParameter = System.Data.SQLite.SQLiteParameter;
 
 namespace Cognitics.DBI
 {
-    public class Connection
+    public class Connection : IDisposable
     {
         public readonly SQLiteConnection Database;
 
         public Connection(string filename)
         {
-            Database = new SQLiteConnection("Data Source=" + filename + ";Version=3;Mode=ReadOnly;");
+            Database = new SQLiteConnection("Data Source=" + filename + ";Version=3;");
             Database.Open();
         }
 
@@ -37,7 +37,47 @@ namespace Cognitics.DBI
         }
 
 
-        ~Connection() => Database.Close();
+        ~Connection()
+        {
+            /*
+            Database.Close();
+            //This necessary because SQLite doesn't seem to totally close the
+            //Database until the finalizer is called.
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            */
+        }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    Database.Close();
+                    //This necessary because SQLite doesn't seem to totally close the
+                    //Database until the finalizer is called.
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                }
+                disposedValue = true;
+            }
+        }
+
+        
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+
+        }
+        #endregion
+
 
     }
 

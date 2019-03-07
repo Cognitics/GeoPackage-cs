@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Cognitics.GeoPackage
 {
-    public class Database
+    public class Database : IDisposable
     {
         public readonly DBI.Connection Connection;
         public SpatialReferenceSystem ApplicationSpatialReferenceSystem;
@@ -179,6 +179,32 @@ namespace Cognitics.GeoPackage
             */
             return layer;
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    Connection.Dispose();
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
+        }
+        #endregion
 
         #endregion
 
